@@ -409,9 +409,10 @@ Então, vamos evoluir nosso conversor com algumas novas features.
 
 Nossa aplicação deve atender ao usuário, são:
 
-. Na primeira visita do usuário, a tela estará com a moeda de origem Dolar (USD) selecionada, com o valor 1 e moeda destino Real (BRL);
-. O usuario pode escolher entre Real e Dolar;
-. O usuário escolhe uma moeda de origem, inserir o valor e uma moeda de destino. Clica em enviar e uma nova página será desenhada com o valor do campo preenchido e um resultado;
++ Na primeira visita do usuário, a tela estará com a moeda de origem Dolar (USD) selecionada, com o valor 1 e moeda destino Real (BRL);
++ Com a moeda de origem em USD, quantidade 1 e moeda destino BRL, ao enviar o formulario, devera retornar a cotacao da unidade;
++ O usuário escolhe uma moeda de origem, inserir o valor e uma moeda de destino. Clica em enviar e uma nova página será desenhada com o valor do campo preenchido e um resultado;
++ O usuario pode escolher entre Real e Dolar;
 
 Abaixo, iniciamos a estender o código com estas novas funcionalidades.
 
@@ -519,13 +520,36 @@ def test_initial_fields_setup_should_be_one_usd_to_brl(browser):
     assert "USD" == browser.find_element_by_css_selector("select.from_currency").text
     assert "BRL" == browser.find_element_by_css_selector("select.to_currency").text
     assert "1" == browser.find_element_by_name("from_amount").get_attribute("value")
+
+
+def test_one_usd_to_brl_should_return_unitary_conversion(browser):
+    browser.get("http://localhost:8000")
+    browser.find_element_by_css_selector("select.from_currency").set_attribute("value", "USD")
+    browser.find_element_by_css_selector("select.to_currency").set_attribute("value", "BRL")
+    browser.find_element_by_name("from_amount").set_attribute("value", "1")
+
+	browser.find_element_by_id("convert_form").submit()
+
+	assert len(browser.find_element_by_css_selector("to_amount").text)
 ```
 
-O arquivo resultante test_functional.py está simplificado, sem dependências ou complexidade não inerente aos testes funcionais. O novo arquivo `conftest.py` torna disponíveis recursos que outros módulos podem utilizar.
+O arquivo resultante `test_functional.py` está simplificado, sem dependências ou complexidade não inerente aos testes funcionais. O novo arquivo `conftest.py` torna disponíveis recursos que outros módulos podem utilizar.
 
 Desta forma, ao iniciar o teste, o `pytest` busca por por aquivos nomeados `conftest.py` na árvore de diretórios, e carrega seus conteúdos isolados pela hierarquia dos módulos e disponibiliza na sessão dos testes em execução.
 
-
 Executando este teste, precisaremos atender às expectativas descritas no novo caso test_initial_fields_setup_should_be_one_usd_to_brl. Isto pode ser feito editando o arquivo HTML `index.html`.
 
-
+```html
+<html>
+	<head><title>dimdim converter</title></head>
+	<body>
+		<select class="from_currency">
+			<option value="USD">Dolar</option>
+		</select>
+		<input type="text" name="from_amount" caption="amount" value="1"/>
+		<select class="to_currency">
+			<option value="BRL">Real</option>
+		</select>
+	</body>
+</html>
+```
