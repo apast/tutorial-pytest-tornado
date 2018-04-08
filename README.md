@@ -13,6 +13,8 @@ Olá!
 + python
 + pip
 + Google Chrome (opcional)
++ geckodriver (https://github.com/mozilla/geckodriver/releases)
++ chromedriver (https://chromedriver.storage.googleapis.com/index.html?path=2.37/)
 
 
 ### Pré-instalação:
@@ -25,6 +27,7 @@ sudo pip install pyenv
 + Quem desenvolve em python?
 + Quem desenvolve com testes?
 + Quem conhece testes?
++ Quem usa o pytest?
 + Quem trabalha com web?
 + Quem conhece Selenium?
 + Quem conhece Tornado?
@@ -552,4 +555,102 @@ Executando este teste, precisaremos atender às expectativas descritas no novo c
 		</select>
 	</body>
 </html>
+```
+
+## Pattern [PageTest](https://martinfowler.com/bliki/PageObject.html)
+
+Neste momento, nosso teste cresce, com comandos redundantes para extração de elementos. Martin Fowler apresenta o padrão PageObject. Este padrao encapsula a complexidade de páginas, expondo funcionalidades públicas, acessos a campos comuns. Isto é uma melhoria em nosso teste, remoção de duplicidades.
+
+Modificando nosso código de testes funcionais, teremos:
+
+```python
+# file test_functional.py
+import pytest
+
+
+@pytest.fixture
+def home_pageobject(browser):
+    return HomePageObject(browser)
+
+
+class HomePageObject():
+
+    def __init__(self, browser):
+        self.browser = browser
+        self.browser.get("http://localhost:8000")
+
+    def get_from_currency_value(self):
+        return self.browser.find_element_by_css_selector("select.from_currency").get_attribute("value")
+
+    def get_to_currency_value(self):
+        return self.browser.find_element_by_css_selector("select.to_currency").get_attribute("value")
+
+    def get_from_amount_value(self):
+        return self.browser.find_element_by_name("from_amount").get_attribute("value")
+
+    def get_to_amount_value(self):
+        return self.browser.find_element_by_css_selector(".to_amount").text
+
+    def set_to_currency_value(self, curr):
+        self.browser.find_element_by_css_selector("select.to_currency").set_attribute("value", curr)
+
+    def set_from_amount_value(self, value):
+        self.browser.find_element_by_name("from_amount").set_attribute("value", value)
+
+    def submit_form(self):
+        self.browser.find_element_by_id("convert_form").submit()
+
+
+def test_title_should_be_for_converter(browser):
+    browser.get("http://localhost:8000")
+    assert "dimdim converter" in browser.title
+
+
+def test_content_should_not_be_empty(browser):
+    browser.get("http://localhost:8000")
+    assert len(browser.find_element_by_tag_name("body").text) > 0
+
+
+def test_initial_fields_setup_should_be_one_usd_to_brl(home_pageobject):
+    assert "USD" == home_pageobject.get_from_currency_value()
+    assert "BRL" == home_pageobject.get_to_currency_value()
+    assert "1" == home_pageobject.get_from_amount_value()
+
+
+def test_one_usd_to_brl_should_return_unitary_conversion(home_pageobject):
+    assert "1" == home_pageobject.get_to_amount_value()
+```
+
+E agora, um HTML que atende ao nosso teste.
+
+```html
+<html>
+	<head><title>dimdim converter</title></head>
+	<body>
+		<select class="from_currency">
+			<option value="USD">Dolar</option>
+		</select>
+		<input type="text" name="from_amount" caption="amount" value="1"/>
+		<select class="to_currency">
+			<option value="BRL">Real</option>
+		</select>
+		<div class="to_amount">1</div>
+	</body>
+</html>
+```
+
+Se modificarmos adicionarmos um novo teste, dobrando o valor de entrada, então a expectativa no valor retornado pela conversão deve dobrar também.
+
+Então, escrevemos mais um teste.
+
+```python
+# file test_functional.py
+...
+
+def test_two_usd_should_return_double_value_in_brl(home_pageobject):
+	home_pageobject.set_from_amount_value("2")
+	home_pageobject.submit()
+
+	assert "2" == home_pageobject.get_to_amount_value()
+
 ```
